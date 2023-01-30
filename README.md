@@ -1,7 +1,7 @@
-# Homework-Collection-Website-of-Web-Course
+# Homework Collection Website of Web Front-end Course
 Homework Collection Website of Web Course.
 
-Copyright (c) 2022 Qilu University of Technology, Faculty of Computer Science & Technology,Duyu.(No.202103180009).
+Copyright &copy; 2022 Duyu.(No.202103180009), Faculty of Computer Science & Technology, Qilu University of Technology.
 
 ## Update on Oct.9, 2022
 
