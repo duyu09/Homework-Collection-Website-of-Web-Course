@@ -1,0 +1,529 @@
+﻿<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @font-face
+        {
+            font-family: Font3;
+            src: url("./font/ZQK2.TTF");
+        }
+        @font-face
+        {
+            font-family: Font4;
+            src: url("./font/DNHYLMXQ2.ttf");
+        }
+        @font-face
+        {
+            font-family: Font2;
+            src:url("./font/ROCK.TTF");
+        }
+    </style>
+    <title>Web前端技术课程作业提交</title>
+    <link rel="shortcut icon" href="./img/Duyu_Logo.jpg">
+</head>
+<body id="all" align="center">
+    <canvas width="1777" height="841" style="position: fixed; left: 0px; top: 0px; z-index: 999; pointer-events: none;"></canvas>
+    <script>
+        class Circle {
+    constructor({origin, speed, color, angle, context}) {
+        this.origin = origin
+        this.position = {...this.origin}
+        this.color = color
+        this.speed = speed
+        this.angle = angle
+        this.context = context
+        this.renderCount = 0
+    }
+
+    draw() {
+        this.context.fillStyle = this.color
+        this.context.beginPath()
+        this.context.arc(this.position.x, this.position.y, 2, 0, Math.PI * 2)
+        this.context.fill()
+    }
+
+    move() {
+        this.position.x = (Math.sin(this.angle) * this.speed) + this.position.x
+        this.position.y = (Math.cos(this.angle) * this.speed) + this.position.y + (this.renderCount * 0.3)
+        this.renderCount++
+    }
+}
+
+class Boom {
+    constructor({origin, context, circleCount = 10, area}) {
+        this.origin = origin
+        this.context = context
+        this.circleCount = circleCount
+        this.area = area
+        this.stop = false
+        this.circles = []
+    }
+
+    randomArray(range) {
+        const length = range.length
+        const randomIndex = Math.floor(length * Math.random())
+        return range[randomIndex]
+    }
+
+    randomColor() {
+        const range = ['8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
+        return '#' + this.randomArray(range) + this.randomArray(range) + this.randomArray(range) + this.randomArray(range) + this.randomArray(range) + this.randomArray(range)
+    }
+
+    randomRange(start, end) {
+        return (end - start) * Math.random() + start
+    }
+
+    init() {
+        for (let i = 0; i < this.circleCount; i++) {
+            const circle = new Circle({
+                context: this.context,
+                origin: this.origin,
+                color: this.randomColor(),
+                angle: this.randomRange(Math.PI - 1, Math.PI + 1),
+                speed: this.randomRange(1, 6)
+            })
+            this.circles.push(circle)
+        }
+    }
+
+    move() {
+        this.circles.forEach((circle, index) => {
+            if (circle.position.x > this.area.width || circle.position.y > this.area.height) {
+                return this.circles.splice(index, 1)
+            }
+            circle.move()
+        })
+        if (this.circles.length == 0) {
+            this.stop = true
+        }
+    }
+
+    draw() {
+        this.circles.forEach(circle => circle.draw())
+    }
+}
+
+class CursorSpecialEffects {
+    constructor() {
+        this.computerCanvas = document.createElement('canvas')
+        this.renderCanvas = document.createElement('canvas')
+
+        this.computerContext = this.computerCanvas.getContext('2d')
+        this.renderContext = this.renderCanvas.getContext('2d')
+
+        this.globalWidth = window.innerWidth
+        this.globalHeight = window.innerHeight
+
+        this.booms = []
+        this.running = false
+    }
+
+    handleMouseDown(e) {
+        const boom = new Boom({
+            origin: {x: e.clientX, y: e.clientY},
+            context: this.computerContext,
+            area: {
+                width: this.globalWidth,
+                height: this.globalHeight
+            }
+        })
+        boom.init()
+        this.booms.push(boom)
+        this.running || this.run()
+    }
+
+    handlePageHide() {
+        this.booms = []
+        this.running = false
+    }
+
+    init() {
+        const style = this.renderCanvas.style
+        style.position = 'fixed'
+        style.top = style.left = 0
+        style.zIndex = '999999999999999999999999999999999999999999'
+        style.pointerEvents = 'none'
+
+        style.width = this.renderCanvas.width = this.computerCanvas.width = this.globalWidth
+        style.height = this.renderCanvas.height = this.computerCanvas.height = this.globalHeight
+
+        document.body.append(this.renderCanvas)
+
+        window.addEventListener('mousedown', this.handleMouseDown.bind(this))
+        window.addEventListener('pagehide', this.handlePageHide.bind(this))
+    }
+
+    run() {
+        this.running = true
+        if (this.booms.length == 0) {
+            return this.running = false
+        }
+
+        requestAnimationFrame(this.run.bind(this))
+
+        this.computerContext.clearRect(0, 0, this.globalWidth, this.globalHeight)
+        this.renderContext.clearRect(0, 0, this.globalWidth, this.globalHeight)
+
+        this.booms.forEach((boom, index) => {
+            if (boom.stop) {
+                return this.booms.splice(index, 1)
+            }
+            boom.move()
+            boom.draw()
+        })
+        this.renderContext.drawImage(this.computerCanvas, 0, 0, this.globalWidth, this.globalHeight)
+    }
+}
+const cursorSpecialEffects = new CursorSpecialEffects()
+cursorSpecialEffects.init()
+</script>
+    <script src="./lib/vue.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="./lib/index.css">
+    <!-- 引入组件库 -->
+    <script src="./lib/index.js"></script>
+    <div align="center" id="title">
+        <div class="tempdiv"><br><br></div>Web前端技术课程作业提交<div class="tempdiv"><br><br></div>
+    </div><br>
+    <div align="center">
+    <div id="desc"  style="font-family: Font2;">
+        <!-- 请正确填写姓名与学号等信息，因信息填写错误造成的后果责任自负。 -->
+        当前作业:<span id="homeworkname"></span>,<span id="lab02temp" style="color: rgb(0, 255, 0);">距离截止还有:</span><span id="countdown" style="color: rgb(0, 255, 0);"></span>
+        <br><br>
+    </div>
+    <div id="formMain">
+        <form>
+            <template>
+            <el-input type="text" name="stuname" id="input01" placeholder="姓名" v-model="in_name"></el-input><br><br>
+            <el-input type="text" name="stunum" id="input02" placeholder="学号" v-model="in_num"></el-input><br><br>
+            <input type="file" name="file" id="input03" accept-charset="ascii" accept="application/zip"><br><br>
+            <!-- <button type="submit" id="sub" @click="cli">提交</button><br><br> -->
+            <span v-if="flag"><span style="font-family: Font3;">正在上传：</span><progress max="" value="" id="pro01"></progress>&nbsp;<span id="sp01" style="font-family: Font2;"></span><br><br></span>
+            <button id="sub" @click="cli"><span id="sbutt">提交</span></button><br>
+            </template>
+        </form>
+        <span v-if="flag"><font color="green">{{msg}}</font></span>
+    </div>
+    </div>
+    
+    <div align="center">
+        <div id="foot">
+        <br>
+        Copyright&nbsp;&copy;&nbsp;2022&nbsp;Qilu&nbsp;University&nbsp;of&nbsp;Technology<br>
+        Faculty&nbsp;of&nbsp;Computer&nbsp;Science&nbsp;&&nbsp;Technology<br>
+        Duyu&nbsp;(No.202103180009)
+        </div>
+    </div>
+    <script>
+    function IsPhone() 
+    {
+        //获取浏览器navigator对象的userAgent属性（浏览器用于HTTP请求的用户代理头的值）
+        //var info = navigator.userAgent;
+        //通过正则表达式的test方法判断是否包含“Mobile”字符串
+        //var isPhone = /m/i.test(info);
+        //如果包含“Mobile”（是手机设备）则返回true
+        //return isPhone;
+        var ua = navigator.userAgent.toLowerCase();//获取判断用的对象
+        if (ua.match(/MicroMessenger/i) == "micromessenger") 
+        {
+        //在微信中打开
+        return true;
+        }
+        if (ua.match(/WeiBo/i) == "weibo") 
+        {
+        //在新浪微博客户端打开
+        return true;
+        }
+        if (ua.match(/QQ/i) == "qq")
+        {
+        //在QQ空间打开
+        return true;
+        }
+    }
+    window.onload=function()
+    {
+        if(IsPhone())
+        {
+            window.location.href='./err.html'
+        }
+    }
+    </script>
+    <script>
+        var vm=new Vue
+        ({
+            el:'#formMain',
+            data:
+            {
+                msg:'请稍侯，您的作业正在提交。',flag:false,prog:'0.00%',
+                in_name:'',in_num:'',
+            },
+            methods:
+            {
+                cli:function()
+                {
+                    this.flag=true
+                },
+                openSuccess:function() 
+                {
+                this.$alert('您已成功提交作业', 'Web作业提交系统提示', 
+                {
+                    confirmButtonText: '确定',
+                    callback: action =>
+                    {
+                        vm.flag=false;
+                    }
+                });
+                },
+                openErr:function(str) 
+                {
+                this.$alert(str, 'Web作业提交系统提示', 
+                {
+                    confirmButtonText: '确定',
+                    callback: action =>
+                    {
+                        vm.flag=false;
+                    }
+                });
+                },
+                openWarn(str) 
+                {
+                    const h = this.$createElement;
+                    this.$notify
+                    ({
+                        title: '系统警告',
+                        message: h('i', { style: 'color: teal'}, str)
+                    });
+                },
+            }
+        })
+    </script>
+    <script src="./lib/jquery-3.6.1.min.js"></script>
+    <script>
+        $('form').on('submit', function (e)
+        {
+            e.preventDefault();  // 组织表单跳转
+            let fd = new FormData(this);  //获取表单数据
+            var t_temp02=new Date().valueOf();
+            if(t_temp02>f)
+            {
+                vm.openErr('对不起，当前已过截止时间，无法提交。若无特殊情况，请也不要向课代表补交。');
+                return;
+            }
+            if(e.delegateTarget.elements.file.files[0]==null)
+            {
+                //alert('请您选择文件。');
+                //location.reload();
+                vm.openErr('请您选择文件。');
+                return;
+            }
+            if(!e.delegateTarget.elements.file.files[0].name.endsWith('.zip'))
+            {
+                //alert('对不起，按照老师的要求，您必须提交zip格式的压缩文件。');
+                //location.reload();
+                vm.openErr('对不起，按照老师的要求，您必须提交zip格式的压缩文件。');
+                return;
+            }
+            if(e.delegateTarget.elements.file.files[0].size>5*1024*1024)
+            {
+                //alert('警告：您的文件大于5MB,可能不符合老师的要求,如需更改文件,请联系课代表。');
+                vm.openWarn('警告：您的文件大于5MB,可能不符合老师的要求,如需更改文件,请联系课代表。');
+            }
+            $.ajax({
+                type: 'POST',
+                url: 'http://82.157.247.126:3000/upload',  
+                // url接口  注意表单的name属性是按照接口文档命名的
+                data: fd, //  前面用FormData 收集的数据
+                dataType:'html',  //预期服务器返回数据类型   返回格式为html
+                contentType: false, // 不要将数据转为查询字符串  因为我们得到的是对象
+                processData: false,  // 不要设置请求头
+                xhr: function () {   // 配置进度条
+                    let xhr = new XMLHttpRequest();
+                    if (xhr.upload) {
+                     xhr.upload.addEventListener('progress', jdt, false); // jdt 为调用函数
+                    }
+                    return xhr;  //xhr对象返回给jQuery使用
+                },
+                beforesend:function(){}, // 请求之前触发函数
+                complete:function()
+                {
+                    //alert('您已经成功提交作业！');
+                    //location.reload();
+                    vm.openSuccess()
+                },   // 请求响应结束之后触发  无论请求成功失败
+            })
+            
+        })
+        // 进度条数据执行方法
+        function jdt(e)
+        {
+            // 获取进度条标签里面的相关属性并且赋值
+            $('progress').attr('max',e.total);  // 总大小
+            $('progress').attr('value',e.loaded); // 已经上传大小
+            var sp=document.getElementById('sp01');
+            sp.innerHTML=(e.loaded/e.total*100).toFixed(2)+"%"
+        }
+    </script>
+    <script>
+        //  秒数转化为天时分秒
+        function formatSeconds(value) 
+        {
+            ms=parseInt(value)%1000
+            value=parseInt(value/1000)
+            var second = parseInt(value)
+            var minute = 0
+            var hour = 0
+            var day = 0
+            if (second > 60)
+            {
+                minute = parseInt(second / 60)
+                second = parseInt(second % 60)
+                if (minute > 60)
+                {
+                    hour = parseInt(minute / 60)
+                    minute = parseInt(minute % 60)
+                    if (hour > 23) 
+                    {
+                        day = parseInt(hour / 24)
+                        hour = parseInt(hour % 24)
+                    }
+                }
+            }
+            let result = '' + second.toString().padStart(2,'0') + '秒' +''+ parseInt(ms).toString().padStart(3,'0') + '毫秒'
+            if (minute > 0) 
+            {
+                result = '' + minute.toString().padStart(2,'0') + '分' + result
+            }
+            else
+            {
+                result = '' + "00".toString().padStart(2,'0') + '分' + result
+            }
+            if (hour > 0)
+            {
+                result = '' + hour.toString().padStart(2,'0') + '时' + result
+            }
+            else
+            {
+                result = '' + "00".toString().padStart(2,'0') + '时' + result
+            }
+            if (day > 0)
+            {
+                result = '' + day.toString().padStart(2,'0') + '天' + result
+            }
+            else
+            {
+                result = '' + "00".toString().padStart(2,'0') + '天' + result
+            }
+            return result
+        }
+        function showct()
+        {
+            var t=new Date().valueOf()
+            document.getElementById("countdown").innerHTML=formatSeconds(Math.abs(f-t));
+            if(f-t<0)
+            {
+                document.getElementById("lab02temp").innerHTML="已超过时间:";
+                document.getElementById("lab02temp").style.color="red";
+                document.getElementById("countdown").style.color="red";
+            }
+        }
+        setInterval(showct,52);
+    </script>
+    <style>
+        #sub
+        {
+            color:white;
+            background-color: rgb(49, 49, 49);
+            font-size: 26px;
+            border-radius: 25%;
+            font-family: Font4;
+        }
+        #all
+        {
+            background-color: rgb(0, 0, 27);
+        }
+        #foot
+        {
+            position: absolute;
+            left:0%;
+            top: 80%;
+            width:100%;
+            height:20%;
+            background: rgb(28,28,28);
+            color: white;
+            background-image: url('./img/background01.gif');
+            font-family: Font2;
+            font-size: large;
+        }
+        #title
+        {
+            color: white;
+            background-color: rgb(28, 28, 28);
+            background-image: url('./img/background01.gif');
+            font-family: Font3;
+            font-size: 48px;
+        }
+        #desc
+        {
+            color:white;
+            font-size: 15px;
+            font-family: Font4;
+        }
+        #formMain
+        {
+            color:white;
+        }
+        
+        #input01,#input02
+        {
+            background-color: rgb(81,81,81);
+            color: white;
+            font-family: Font4;
+            font-weight: 900;
+            width: 25%;
+            font-size: large;
+        }
+        #input03
+        {
+            background-color: rgb(81,81,81);
+            font-size: medium;
+            font-family: Font4;
+            font-weight: 750;
+            font-size: large;
+        }
+        #pro01
+        {
+            background-color: red;
+        }
+        #el01
+        {
+            background-color:rgb(30, 67, 30);
+            color:white;
+        }
+        #sub:hover
+        {
+            background-color: rgb(3, 0, 97);
+        }
+        .tempdiv
+        {
+            font-size: 14px;
+        }
+        #sbutt
+        {
+            font-family: Font4;
+            font-size: 26px;
+        }
+        #input03:hover
+        {
+            background-color: rgb(81,81,150);
+        }
+    </style>
+    <script>
+        var f=new Date(2022,12-1,16,19,30,00,00).valueOf();
+        document.getElementById("homeworkname").innerHTML="第15周实验报告";
+    </script>
+</body>
+</html>
