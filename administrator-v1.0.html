@@ -1,0 +1,360 @@
+﻿<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web课程作业管理</title>
+</head>
+<body id="all" align="center">
+    <script src="./lib/vue.js"></script>
+    <script src="./lib/vue-resource.js"></script>
+    <div id="formMain">
+        <div align="center" id="title">
+            <hr style="border:1.5px solid rgb(30,30,30)">
+            Web前端技术课程作业&nbsp;管理员系统<br>
+            <hr style="border:1.5px solid rgb(30,30,30)">
+        </div>
+        <form><i>添加作业：</i>
+            姓名：<input type="text" name="stuname" id="input01" placeholder="请填写姓名">&nbsp;
+            学号：<input type="text" name="stunum" id="input02" placeholder="请填写学号">&nbsp;
+            <input type="file" name="file" id="input03" accept-charset="ascii" placeholder="请选择一个zip格式的压缩文件">
+            <span v-if="flag">正在上传：<progress max="" value=""></progress>&nbsp;<span id="sp01"></span></span>
+            <button id="sub" @click="cli">提交</button><br>
+        </form><br>
+        <button id="downall" @click="downloadallfile">下载全部</button>&nbsp;
+        <button id="delall" @click="delall">删除全部</button>&nbsp;
+        <button id="flush" @click="sortarr">刷新列表</button>&nbsp;
+        <button id="gostu" @click="gotostudent">前往学生端</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <button id="sortnum" @click="sortnum">按学号排序</button>&nbsp;
+        <button id="sorttime" @click="sorttime">按时间排序</button>&nbsp;&nbsp;
+        <br><br>
+    </div><br>
+    <div id="table" align="left">
+        <center>
+        <table id="tab01" border="1px">
+            <caption><span id="ptemp01"></span>&nbsp;&nbsp;<b>已提交人员名单</b>&nbsp;&nbsp;-&nbsp;&nbsp;<i>已提交人数：{{arrdata.length}}&nbsp;人次</i></span></caption>
+            <tr class="tabrow"><th>序号</th><th>姓名</th><th>学号</th><th>提交时间</th><th>操作</th></tr>
+            <tr v-for="(item,id) in arrdata" :key="id+''" class="tabrow">
+                <td>{{id+1}}</td>
+                <td>{{item.stuname}}</td>
+                <td>{{item.stunum}}</td>
+                <td>{{item.subtime | unixtotime}}</td>
+                <td><a class="wt" @click.prevent="downloadfile(item.stuname,item.stunum,item.subtime)">下载</a>&nbsp;&nbsp;
+                    <a class="wt" @click.prevent="delfile(item.stuname,item.stunum,item.subtime)">删除</a></td>
+            </tr>
+        </table>
+        </center>
+        <br><br>
+    </div>
+    
+    <div align="center">
+        <div id="foot"><br>
+        Copyright&nbsp;&copy;&nbsp;2022&nbsp;Qilu&nbsp;University&nbsp;of&nbsp;Technology<br>
+        Faculty&nbsp;of&nbsp;Computer&nbsp;Science&nbsp;&&nbsp;Technology<br>
+        Duyu(No.202103180009)<br><br>
+        </div>
+    </div>
+    <script>
+    function IsPhone() 
+    {
+        //获取浏览器navigator对象的userAgent属性（浏览器用于HTTP请求的用户代理头的值）
+        //var info = navigator.userAgent;
+        //通过正则表达式的test方法判断是否包含“Mobile”字符串
+        //var isPhone = /m/i.test(info);
+        //如果包含“Mobile”（是手机设备）则返回true.
+        //return isPhone;
+        var ua = navigator.userAgent.toLowerCase();//获取判断用的对象
+        if (ua.match(/MicroMessenger/i) == "micromessenger") 
+        {
+        //在微信中打开
+        return true;
+        }
+        if (ua.match(/WeiBo/i) == "weibo") 
+        {
+        //在新浪微博客户端打开
+        return true;
+        }
+        if (ua.match(/QQ/i) == "qq")
+        {
+        //在QQ空间打开
+        return true;
+        }
+    }
+    window.onload=function()
+    {
+        if(IsPhone())
+        {
+            window.location.href='./err.html'
+        }
+    }
+    </script>
+    <script>
+        var vm02=new Vue
+        ({
+            el:'#table',
+            data:
+            {
+                arrdata:[],
+            },
+            methods:
+            {
+                queryfile:function(){},
+                downloadfile:function(name,num,time)
+                {
+                    //this.$http.get('http://82.157.247.126:3000/downloadfile',{params:{num:num,name:name,time:time}});
+                    var path='http://82.157.247.126:3000/downloadfile?'+'num='+num+'&name='+name+'&time='+time;
+                    window.open(path,'_blank');
+                },
+                delfile:function(name,num,time)
+                {
+                    var b=confirm("您确定要删除 "+name+" 同学 (学号:"+num+") 的作业吗? 该操作不可恢复。");
+                    if(b==false)
+                    {
+                        alert("已取消删除的操作。");
+                        return;
+                    }
+                    this.$http.get('http://82.157.247.126:3000/delfile',{params:{num:num,name:name,time:time}}).then((result)=>
+                    {
+                        if(result.body.success==true) {alert("您已成功删除文件。");vm.sortarr();}
+                        else alert("删除文件失败。");
+                    });
+                    //var path='http://82.157.247.126:3000/delfile?'+'num='+num+'&name='+name+'&time='+time;
+                    //window.open(path,'_blank');
+                }
+                
+            }
+        });
+        var vm=new Vue
+        ({
+            el:'#formMain',
+            data:
+            {
+                msg:'请稍侯，您的作业正在提交。',flag:false,prog:'0.00%',
+            },
+            methods:
+            {
+                cli:function()
+                {
+                    this.flag=true
+                },
+                sortarr:function()
+                {
+                    this.$http.get('http://82.157.247.126:3000/queryfile').then((result)=>
+                    {
+                        var datatemp=result.body;
+                        datatemp.sort(function(a,b)
+                        {
+                            return a.stunum-b.stunum;
+                        });
+                        vm02.arrdata=datatemp;
+                    })
+                },
+                gotostudent:function()
+                {
+                    window.open("http://82.157.247.126/","_blank");
+                },
+                downloadallfile:function()
+                {
+                    window.open('http://82.157.247.126:3000/downloadallfile','_blank');
+                },
+                sortnum:function()
+                {
+                    vm02.arrdata.sort(function(a,b)
+                    {
+                        return a.stunum-b.stunum;
+                    });
+                },
+                sorttime:function()
+                {
+                    vm02.arrdata.sort(function(a,b)
+                    {
+                        return a.subtime-b.subtime;
+                    });
+                },
+                delall:function()
+                {
+                    var b = confirm("此操作将删除所有已提交的作业文件，不可恢复，是否继续？");
+                    if(b==false)
+                    {
+                        alert("操作已取消。");
+                        return;
+                    }
+                    this.$http.get('http://82.157.247.126:3000/clear').then((result)=>
+                    {
+                        if(result.body.success==true) {alert("已成功清除所有文件！");vm.sortarr();}
+                        else alert("清除失败！");
+                    })
+                },
+            },
+            mounted:function()
+            {
+                this.sortarr();
+            }
+        });
+        Vue.filter('unixtotime',(arg)=>
+        {
+            var unixtime=arg;
+            var unixTimestamp = new Date(unixtime*1);
+            return unixTimestamp.toLocaleString();
+        })
+    </script>
+    <script src="./lib/jquery-3.6.1.min.js"></script>
+    <script>
+        $('form').on('submit', function (e) 
+        {
+            e.preventDefault();  // 组织表单跳转
+            let fd = new FormData(this);  // 获取表单数据
+            if(e.delegateTarget.elements.file.files[0]==null)
+            {
+                alert('请您选择文件。');
+                location.reload();
+                return;
+            }
+            if(!e.delegateTarget.elements.file.files[0].name.endsWith('.zip'))
+            {
+                alert('对不起，按照老师的要求，您必须提交zip格式的压缩文件。');
+                location.reload();
+                return;
+            }
+            if(e.delegateTarget.elements.file.files[0].size>10*1024*1024)
+            {
+                var qwe = confirm('警告：您的文件大于10MB,可能不符合老师的要求,您确定继续提交吗?');
+                if(qwe==false)
+                {
+                    alert("已取消提交");
+                    location.reload();
+                    return;
+                }
+            }
+            $.ajax({
+                type: 'POST',
+                url: 'http://82.157.247.126:3000/upload',  
+                // url接口  注意表单的name属性是按照接口文档命名的
+                data: fd, //  前面用FormData 收集的数据
+                dataType:'html',  //预期服务器返回数据类型   返回格式为html
+                contentType: false, // 不要将数据转为查询字符串  因为我们得到的是对象
+                processData: false,  // 不要设置请求头
+                xhr: function () {   // 配置进度条
+                    let xhr = new XMLHttpRequest();
+                    if (xhr.upload) {
+                     xhr.upload.addEventListener('progress', jdt, false); // jdt 为调用函数
+                    }
+                    return xhr;  //xhr对象返回给jQuery使用
+                },
+                beforesend:function(){}, // 请求之前触发函数
+                complete:function()
+                {
+                    alert('您已经成功提交作业！');
+                    location.reload();
+                },   // 请求响应结束之后触发  无论请求成功失败
+            })
+            
+        })
+        // 进度条数据执行方法
+        function jdt(e)
+        {
+            // 获取进度条标签里面的相关属性并且赋值
+            $('progress').attr('max',e.total);  // 总大小
+            $('progress').attr('value',e.loaded); // 已经上传大小
+            var sp=document.getElementById('sp01');
+            sp.innerHTML=(e.loaded/e.total*100).toFixed(2)+"%"
+        }
+    </script>
+    <style>
+        #all
+        {
+            background-color: rgb(63,63,63);
+        }
+        #foot
+        {
+            
+            left:0%;
+            width:100%;
+            bottom: 0%;
+            background: rgb(50,50,50);
+            color: white;
+        }
+        #title
+        {
+            color: white;
+            font-size: 31px;
+            background-color: rgb(35,35,35);
+        }
+        #desc
+        {
+            color:white;
+            font-size: 12px;
+        }
+        #formMain
+        {
+            color:white;
+            border: 2px solid rgb(42, 42, 42);
+            border-radius: 5%;
+            background-color: rgb(50,50,50);
+        }
+        #sub,#downall,#delall,#flush,#gostu,#sortnum,#sorttime
+        {
+            color:white;
+            background-color: black;
+            font-size: 18px;
+            border-radius: 10%;
+        }
+        #sub:hover,#downall:hover,#delall:hover,#flush:hover,#gostu:hover,#sortnum:hover,#sorttime:hover
+        {
+            background-color: rgb(91, 91, 91);
+        }
+        #flush:active,#downall:active,#delall:active,#gostu:active,#sortnum:active,#sorttime:active,#sub:active
+        {
+            background-color: rgb(50,50,50);
+        }
+        #input01,#input02
+        {
+            background-color: rgb(81,81,81);
+            color: white;
+            font-family: 微软雅黑;
+            border-radius: 4%;
+        }
+        #input03
+        {
+            background-color: rgb(81,81,81);
+            font-size: medium;
+            
+        }
+        #tab01
+        {
+            color: white;
+            border: 2px solid black;
+            width: 92.5%;
+            text-align: center;
+        }
+        #tabrow:hover
+        {
+            background-color: black;
+        }
+        a.wt:link
+        {
+            color: skyblue;
+        }
+        a.wt:visited
+        {
+            color: skyblue;
+        }
+        .wt
+        {
+            color:skyblue;
+            cursor:pointer;
+        }
+        a.wt:hover
+        {
+            color:plum;
+        }
+        #ptemp01
+        {
+            color: white;
+            left: 8%;
+        }
+    </style>
+</body>
+</html>
+
